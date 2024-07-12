@@ -1,0 +1,8 @@
+{
+  "label": "Setup",
+  "position": 5,
+  "link": {
+    "type": "generated-index",
+    "description": "This guide covers the initial setup of Giveaway Boat for your server."
+  }
+}
