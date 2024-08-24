@@ -1,0 +1,114 @@
+name: PR Preview
+
+on:
+    pull_request_target:
+        types: ['opened', 'synchronize']
+
+permissions:
+    contents: write
+    pull-requests: write
+
+jobs:
+    copy-content:
+        runs-on: ubuntu-latest
+        environment: require-worflow-approval
+        outputs:
+            commit_hash: ${{ steps.get-commit.outputs.commit_hash }}
+
+        steps:
+            - name: Checkout main repository
+              uses: actions/checkout@v3
+
+            - name: Fetch PR branch from fork
+              run: |
+                  git fetch https://github.com/${{ github.event.pull_request.head.repo.full_name }} ${{ github.event.pull_request.head.ref }}
+
+            - name: Copy contents to preview branch
+              env:
+                  GITHUB_TOKEN: ${{ secrets.PAT }}
+              run: |
+                  PREVIEW_BRANCH="preview-${{ github.event.pull_request.number }}"
+                  git checkout -b $PREVIEW_BRANCH FETCH_HEAD
+                  git push origin $PREVIEW_BRANCH --force
+
+            - name: Get Latest Commit Hash
+              id: get-commit
+              run: |
+                  COMMIT_HASH=$(git rev-parse --short=6 HEAD)
+                  echo "commit_hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
+
+    preview-comment:
+        needs: copy-content
+        if: github.event.pull_request.head.repo.full_name != github.repository
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Find Comment
+              uses: peter-evans/find-comment@v3
+              id: fc
+              with:
+                  issue-number: ${{ github.event.pull_request.number }}
+                  comment-author: 'github-actions[bot]'
+
+            - name: Create Initial "Build in Progress" Comment
+              uses: peter-evans/create-or-update-comment@v4
+              id: intial-comment
+              with:
+                  comment-id: ${{ steps.fc.outputs.comment-id }}
+                  issue-number: ${{ github.event.pull_request.number }}
+                  body: |
+                      ## Deploying ${{ secrets.CF_PROJECT_NAME }} with &nbsp;<a href="https://pages.dev"><img alt="Cloudflare Pages" src="https://user-images.githubusercontent.com/23264/106598434-9e719e00-654f-11eb-9e59-6167043cfa01.png" width="16"></a> &nbsp;Cloudflare Pages
+
+                      <table>
+                      <tr><td><strong>Latest commit:</strong></td><td><code>${{ needs.copy-content.outputs.commit_hash }}</code></td></tr>
+                      <tr><td><strong>Status:</strong></td><td>⚡️&nbsp; Build in progress...</td></tr>
+                      </table>
+
+                      [View logs](https://dash.cloudflare.com/?to=/:account/pages/view/test1/${{ steps.cf-pages-await.outputs.id }})
+                  edit-mode: replace
+
+            - name: Wait for Cloudflare Pages Deployment
+              uses: WalshyDev/cf-pages-await@v1
+              id: cf-pages-await
+              with:
+                  accountId: ${{ secrets.CF_ACCOUNT_ID }}
+                  apiToken: ${{ secrets.CF_API_TOKEN }}
+                  project: ${{ secrets.CF_PROJECT_NAME }}
+              continue-on-error: true
+
+            - name: Prepare Final Comment Body
+              id: prepare-comment
+              run: |
+                  if [ "${{ steps.cf-pages-await.outputs.success }}" == "true" ]; then
+                    COMMENT_BODY="## Deploying ${{ secrets.CF_PROJECT_NAME }} with &nbsp;<a href=\"https://pages.dev\"><img alt=\"Cloudflare Pages\" src=\"https://user-images.githubusercontent.com/23264/106598434-9e719e00-654f-11eb-9e59-6167043cfa01.png\" width=\"16\"></a> &nbsp;Cloudflare Pages
+                    
+                    <table>
+                    <tr><td><strong>Latest commit:</strong></td><td><code>${{ needs.copy-content.outputs.commit_hash }}</code></td></tr>
+                    <tr><td><strong>Status:</strong></td><td>&nbsp;✅&nbsp; Deploy successful!</td></tr>
+                    <tr><td><strong>Preview URL:</strong></td><td><a href='${{ steps.cf-pages-await.outputs.url }}'>${{ steps.cf-pages-await.outputs.url }}</a></td></tr>
+                    <tr><td><strong>Branch Preview URL:</strong></td><td><a href='${{ steps.cf-pages-await.outputs.alias }}'>${{ steps.cf-pages-await.outputs.alias }}</a></td></tr>
+                    </table>
+                    
+                    [View logs](https://dash.cloudflare.com/?to=/:account/pages/view/test1/${{ steps.cf-pages-await.outputs.id }})"
+                  else
+                    COMMENT_BODY="## Deploying ${{ secrets.CF_PROJECT_NAME }} with &nbsp;<a href=\"https://pages.dev\"><img alt=\"Cloudflare Pages\" src=\"https://user-images.githubusercontent.com/23264/106598434-9e719e00-654f-11eb-9e59-6167043cfa01.png\" width=\"16\"></a> &nbsp;Cloudflare Pages
+                    
+                    <table>
+                    <tr><td><strong>Latest commit:</strong></td><td><code>${{ needs.copy-content.outputs.commit_hash }}</code></td></tr>
+                    <tr><td><strong>Status:</strong></td><td>🚫&nbsp; Build failed.</td></tr>
+                    </table>
+                    
+                    [View logs](https://dash.cloudflare.com/?to=/:account/pages/view/${{ secrets.CF_PROJECT_NAME }}/${{ steps.cf-pages-await.outputs.id }})"
+                  fi
+
+                  echo "comment_body<<EOF" >> $GITHUB_OUTPUT
+                  echo "$COMMENT_BODY" >> $GITHUB_OUTPUT
+                  echo "EOF" >> $GITHUB_OUTPUT
+
+            - name: Update Comment with Build Status
+              uses: peter-evans/create-or-update-comment@v4
+              with:
+                  comment-id: ${{ steps.intial-comment.outputs.comment-id }}
+                  issue-number: ${{ github.event.pull_request.number }}
+                  body: ${{ steps.prepare-comment.outputs.comment_body }}
+                  edit-mode: replace

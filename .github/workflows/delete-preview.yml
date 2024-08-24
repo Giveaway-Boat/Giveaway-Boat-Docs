@@ -1,0 +1,22 @@
+name: Delete Preview Branch
+
+on:
+    pull_request_target:
+        types: ['closed']
+
+permissions:
+    contents: write
+
+jobs:
+    delete-preview-branch:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout main repository
+              uses: actions/checkout@v3
+
+            - name: Delete Preview Branch
+              env:
+                  GITHUB_TOKEN: ${{ secrets.PAT }}
+              run: |
+                  BRANCH_NAME="preview-${{ github.event.pull_request.number }}"
+                  git push origin --delete $BRANCH_NAME
