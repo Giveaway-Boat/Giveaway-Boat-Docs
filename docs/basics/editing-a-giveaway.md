@@ -6,9 +6,15 @@ sidebar_position: 3
 
 When you mess up when creating a giveaway or you forgot to add something, you can follow the steps here to fix it.
 
+## Using the Context Menu to edit a giveaway
+
+Right click the giveaway's message. Navigate to Apps, and click "Edit Giveaway".
+
+![Context Menu Edit Button](/assets/basics/editing-a-giveaway/context/edit-button.png)
+
 ## Using the Dashboard to edit a giveaway
 
-To start, head on to the dashboard by clicking [here](https://giveaway.boats/dashboard). Find your server and click the "Dashboard" button next to it.
+Go to the dashboard by clicking [here](https://giveaway.boats/dashboard). Find your server and click the "Dashboard" button next to it.
 
 ![Dashboard](/assets/basics/setup/dashboard.png)
 

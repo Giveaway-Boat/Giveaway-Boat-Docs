@@ -8,9 +8,15 @@ When you don't want to give something away anymore, or you simply want to re-cre
 
 Before getting started, be aware that, once the giveaway is deleted, all of the participants are removed, the giveaway message is deleted, and you can no longer configure the giveaway or get a winner out of it.
 
-## Using the Dashboard to edit a giveaway
+## Using Context Menu to delete a giveaway
 
-To start, head on to the dashboard by clicking [here](https://giveaway.boats/dashboard). Find your server and click the "Dashboard" button next to it.
+Right click the giveaway's message. Navigate to Apps, and click "Edit Giveaway".
+
+![Context Menu Delete Button](/assets/basics/deleting-a-giveaway/context/delete-button.png)
+
+## Using the Dashboard to delete a giveaway
+
+Go to the dashboard by clicking [here](https://giveaway.boats/dashboard). Find your server and click the "Dashboard" button next to it.
 
 ![Dashboard](/assets/basics/setup/dashboard.png)
 

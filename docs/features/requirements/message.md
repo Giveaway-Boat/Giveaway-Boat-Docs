@@ -74,3 +74,8 @@ You can blacklist channels from being counted in the message counter.
 ![Blacklist option on dashboard](/assets/features/requirements/message/blacklist.png)
 
 If you want to whitelist, click the "Add all" button and deselect the ones you want whitelisted.
+
+### Removing messages
+
+You can remove amount of messages from people by using the `g.set messages` command.
+To remove the user from the database (essentially setting their message count to 0), you can also use the `g.clear messages` command.
